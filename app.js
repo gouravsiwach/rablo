@@ -6,10 +6,15 @@ const PORT = process.env.PORT || 3000;
 const userdetailsRoutes = require("./routes/userdetails");
 const twilio = require("twilio");
 const otpRoutes = require("./routes/otpRoutes");
+const secretKey = process.env.JWT_SECRET;
 
 // Load environment variables from .env
 const dotenv = require("dotenv");
 require("dotenv").config();
+
+const jwt = require("jsonwebtoken");
+
+// ... rest of your code ...
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
