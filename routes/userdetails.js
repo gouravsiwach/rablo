@@ -17,7 +17,6 @@ router.post("/userdetails", async (req, res) => {
       state,
       pincode,
       school,
-      classs,
       board,
     } = req.body;
 
@@ -33,7 +32,6 @@ router.post("/userdetails", async (req, res) => {
       !state ||
       !pincode ||
       !school ||
-      !classs ||
       !board
     ) {
       return res.status(400).json({ message: "Mandatory fields are empty" });
