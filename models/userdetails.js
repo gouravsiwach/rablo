@@ -47,7 +47,7 @@ const userdetailsSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  classs: {
+  class: {
     type: String,
     required: true,
   },
