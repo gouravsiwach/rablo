@@ -61,6 +61,3 @@ function verifyOTP(phoneNumber, userOTP) {
 }
 
 module.exports = { sendOTP, verifyOTP };
-}
-
-module.exports = { sendOTP, verifyOTP };
