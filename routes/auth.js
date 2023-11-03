@@ -3,9 +3,10 @@ const router = express.Router();
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const secretKey = process.env.JWT_SECRET;
+const secretKey = "your-secret-key";
 const Token = require("../models/token");
 const verifyToken = require("../middleware/verifyToken");
+const uuid = require("uuid");
 
 // Signup Route
 router.post("/signup", async (req, res) => {
@@ -22,7 +23,18 @@ router.post("/signup", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, email, password: hashedPassword });
+
+    // Generate a UUID for the user
+    const userUUID = uuid.v4();
+
+    const user = new User({
+      username,
+      email,
+      password: hashedPassword,
+      uuid: userUUID,
+    });
+
+    // Save the user document, including the UUID, to the database
     await user.save();
 
     // Generate a token for the newly created user
@@ -34,7 +46,7 @@ router.post("/signup", async (req, res) => {
     const tokenEntry = new Token({ email: user.email, token });
     await tokenEntry.save();
 
-    res.status(201).json({ message: "User Created", token });
+    res.status(201).json({ message: "User Created", token, uuid: userUUID });
   } catch (error) {
     res
       .status(400)
@@ -60,6 +72,9 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Incorrect Password" });
     }
 
+    // Fetch the UUID from the user's document
+    const userUUID = user.uuid;
+
     // Generate a token for the authenticated user
     const token = jwt.sign({ email: user.email }, secretKey, {
       expiresIn: "1d",
@@ -72,39 +87,16 @@ router.post("/login", async (req, res) => {
     console.log("Generated Token for Login:", token);
     console.log("User's Email:", user.email);
 
-    res.status(200).json({ message: "Login successful", token });
+    res
+      .status(200)
+      .json({ message: "Login successful", token, uuid: userUUID });
   } catch (error) {
     res.status(500).json({ message: "Login failed", error: error.message });
   }
 });
 
-router.get("/protected", verifyToken, async (req, res) => {
-  const userEmail = req.user.email; // Email is retrieved from the token's payload
-
-  try {
-    // Retrieve user's data from the database
-    const user = await User.findOne({ email: userEmail });
-
-    if (!user) {
-      return res.status(401).json({ message: "Access denied, user not found" });
-    }
-
-    const userResponse = {
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      // Add any additional user data you want to include
-    };
-
-    res.status(200).json({
-      message: `Access to protected resource granted for user: ${user.email}`,
-      user: userResponse,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error retrieving user data", error: error.message });
-  }
+router.get("/protected", verifyToken, (req, res) => {
+  res.status(200).json({ message: `Access granted by user: ${req.user}` });
 });
 
 module.exports = router;
