@@ -1,56 +1,37 @@
 const jwt = require("jsonwebtoken");
 const Token = require("../models/token");
-const secretKey = process.env.JWT_SECRET;
+const secretKey = "your-secret-key";
 
-const verifyToken = async (req, res, next) => {
-  const authHeader = req.header("Authorization");
+function verifyToken(req, res, next) {
+  const authorizationHeader = req.headers.authorization;
 
-  if (!authHeader) {
-    return res
-      .status(401)
-      .json({ message: "Access denied, no token provided" });
+  if (!authorizationHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const [bearer, token] = authHeader.split(" ");
+  const parts = authorizationHeader.split(" ");
+
+  if (parts.length !== 2) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const [bearer, token] = parts;
 
   if (bearer !== "Bearer" || !token) {
-    return res
-      .status(401)
-      .json({ message: "Access denied, invalid authorization format" });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
-  try {
-    const decoded = jwt.verify(token, secretKey);
-
-    if (!decoded.email) {
-      console.log("Email not found in the token payload");
-      return res.status(401).json({ message: "Access denied, invalid token" });
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const email = decoded.email;
-
-    // Retrieve the user's token from the database
-    const tokenFromDB = await Token.findOne({ email });
-
-    if (!tokenFromDB || tokenFromDB.token !== token) {
-      console.log("Tokens do not match");
-      return res.status(401).json({ message: "Access denied, invalid token" });
-    }
-
-    // Attach the email to the request for further use if needed
-    req.user = { email };
-
+    req.user = decoded.email;
     next();
-  } catch (error) {
-    console.error(error);
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({ message: "Invalid token" });
-    } else if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ message: "Token expired" });
-    } else {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  }
+  });
+}
+
+module.exports = verifyToken;
 };
 
 module.exports = verifyToken;
